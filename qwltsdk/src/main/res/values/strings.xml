@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">QwltSdk</string>
+    <string name="AutomaticStepCountingText">Qwlt is counting the steps in the background</string>
+    <string name="AutomaticStepCounting">Qwlt Step Counting</string>
+    <string name="channel_id">STEPSERVICE CHANNEL</string>
+    <integer name="automaticStepCounting_notification_id">1</integer>
+
+</resources>
