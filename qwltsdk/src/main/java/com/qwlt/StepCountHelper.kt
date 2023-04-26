@@ -42,7 +42,7 @@ class StepCountHelper(context: Context) {
     }
 
     fun getTodayTotalStepCount():Float {return dayDao.getLatestObservable().steps}
-    /*fun getStepsCountByDate(startDate:String,endDate:String):List<StepCount> {
+    fun getStepsCountByDate(startDate:String,endDate:String):List<StepCount> {//dateformat-2023-03-14
         val list=dayDao.getStepCountByDate(startDate,endDate)
         var  stepCountList= ArrayList<StepCount>()
         for (obj in list){
@@ -53,7 +53,7 @@ class StepCountHelper(context: Context) {
         }
         return stepCountList
     }
-    fun getStepsCountByDate(startDate:String):List<StepCount> {
+    fun getStepsCountByDate(startDate:String):List<StepCount> {//dateformat-2023-03-14
         val list=dayDao.getStepCountByDate(startDate)
         var  stepCountList= ArrayList<StepCount>()
         for (obj in list){
@@ -63,5 +63,5 @@ class StepCountHelper(context: Context) {
             stepCountList.add(stepCount)
         }
         return stepCountList
-    }*/
+    }
 }
