@@ -17,6 +17,7 @@ abstract class MainDatabase : RoomDatabase() {
     companion object {
         @Volatile
         private var INSTANCE: MainDatabase? = null
+        @JvmStatic
         fun getInstance(context: Context): MainDatabase {
             synchronized(this) {
                 var instance = INSTANCE

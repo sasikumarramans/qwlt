@@ -28,12 +28,12 @@ class MainActivity : AppCompatActivity(),StepCountListener {
     }
     fun startCountService(){
         stepCountHelper=StepCountHelper.getInstance(this)
-        stepCountHelper?.startStepCount(this)
-        binding.totalSteps.setText("Total Steps: "+ stepCountHelper?.getTodayTotalStepCount()?.roundToInt())
+        stepCountHelper?.getStepLive()
+        binding.totalSteps.setText("Total Steps: "+ stepCountHelper?.getStepLive())
     }
 
     override fun currentStepCount(count: Float) {
-        binding.totalSteps.setText("Current Steps: "+stepCountHelper?.getTodayTotalStepCount()?.roundToInt())
+        binding.totalSteps.setText("Current Steps: "+stepCountHelper?.getStepLive())
         binding.currentSteps.setText(count.roundToInt().toString())
 
     }

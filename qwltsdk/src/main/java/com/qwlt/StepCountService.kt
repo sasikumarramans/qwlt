@@ -37,10 +37,10 @@ class StepCountService : Service(), SensorEventListener {
     private var viewModelJob = Job()
     private val uiScope = CoroutineScope(Dispatchers.Main + viewModelJob)
     private var sensorManager: SensorManager? = null
-    private var messenger:Messenger?=null
+    //private var messenger:Messenger?=null
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         super.onStartCommand(intent, flags, startId)
-         messenger = intent!!.extras!!.get("MESSENGER") as Messenger
+         //messenger = intent!!.extras!!.get("MESSENGER") as Messenger
         return START_STICKY
     }
 
@@ -53,7 +53,7 @@ class StepCountService : Service(), SensorEventListener {
             totalStep += p0.values[0]
             val msg: Message = Message.obtain()
             msg.obj = totalStep
-            messenger?.send(msg)
+            //messenger?.send(msg)
             createMissingHistoryEntries(stepCounterDB)
             launchIO(uiScope) {
                 dayDao.addLatestSteps(p0.values[0])
@@ -109,15 +109,11 @@ class StepCountService : Service(), SensorEventListener {
                     // https://developer.android.com/reference/android/support/v4/app/NotificationCompat.Builder.html#NotificationCompat.Builder(android.content.Context)
                     getString(R.string.channel_id)
                 }
-            val pendingIntent: PendingIntent =
-                Intent(this, MainActivity::class.java).let { notificationIntent ->
-                    PendingIntent.getActivity(this, 0, notificationIntent, PendingIntent.FLAG_IMMUTABLE)
-                }
+
             val notification: Notification = Notification.Builder(this,channelId )
                 .setContentTitle(getString(R.string.AutomaticStepCounting))
                 .setContentText(getString(R.string.AutomaticStepCountingText))
                 .setSmallIcon(R.drawable.ic_directions_run_black_24dp)
-                .setContentIntent(pendingIntent)
                 .build()
             startForeground(R.integer.automaticStepCounting_notification_id, notification)
         }
