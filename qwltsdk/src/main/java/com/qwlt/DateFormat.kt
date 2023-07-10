@@ -1,4 +1,4 @@
-package com.qwlt.utils
+package com.qwlt
 
 import android.annotation.SuppressLint
 import java.text.SimpleDateFormat

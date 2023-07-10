@@ -2,80 +2,70 @@ package com.qwlt;
 
 import android.Manifest;
 import android.app.Activity;
-import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Build;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 
-import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
-
-import com.qwlt.database.MainDatabase;
-import com.qwlt.database.StepCounterDB;
-import com.qwlt.database.StepCounterDao;
-
-import org.json.JSONArray;
-import org.json.JSONObject;
-
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
-import java.util.List;
 
-public class StepsCountHelper implements ActivityCompat.OnRequestPermissionsResultCallback {
+
+public class StepsCountHelper {
     private static final int MY_PERMISSIONS_REQUEST_ACTIVITY_RECON = 1;
 
-    public StepCounterDao dayDao;
     public static StepsCountHelper stepCountHelper;
-    public Activity context;
+    public static Activity context;
+    public static StepCountInterface stepCountInterface;
+    public static LocationUpdateInterface locationUpdateInterface;
+    public static DBManager dbManager;
+    public static String strLocation;
 
-    public static StepsCountHelper getInstance(Activity context) {
-        if (stepCountHelper == null) {
-            stepCountHelper = new StepsCountHelper(context);
-        }
-        return stepCountHelper;
-
+    public static void getInstance(Activity context) {
+        stepCountHelper = new StepsCountHelper(context);
     }
 
     public StepsCountHelper(Activity context) {
-        startStepCountService();
         this.context = context;
+        dbManager = new DBManager(context);
+        dbManager.open();
+        // dayDao = QwltDatabase.getInstance(context).stepCounterDao();
+        startStepCountService();
     }
 
     public void startStepCountService() {
         reqActivityReconPermission(context);
     }
-    public void startService(){
-        //val messenger=Messenger(handler)
+
+    public void startService() {
         Intent stepCountService = new Intent(context, StepCountService.class);
-        //stepCountService.putExtra("MESSENGER",messenger)
-        context.startService(stepCountService);
-        dayDao = MainDatabase.getInstance(context).getStepCounterDao();
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            context.startForegroundService(stepCountService);
+        } else {
+            context.startService(stepCountService);
+        }
+    }
+    public void stepLiveDelegate(StepCountInterface stepIf){
+        stepCountInterface=stepIf;
+    }
+    public void locationLiveDelegate(LocationUpdateInterface locationIf){
+        locationUpdateInterface=locationIf;
     }
 
     public int getStepLive() {
-        return Math.round(dayDao.getLatestObservable().getSteps());
+        if (dbManager != null)
+            return dbManager.first();
+        return 0;
     }
 
     public String getSkippedSteps() {//dateformat-2023-03-14
-        String startDate = getBeforeDate("YYYY-MM-DD");
-        String endDate = getCurrentDate("YYYY-MM-DD");
-        List<StepCounterDB> list = dayDao.getStepCountByDate(startDate, endDate);
-        //var  stepCountList= ArrayList<StepCount>()
-        JSONArray returnObj = new JSONArray();
-        try {
-            for (StepCounterDB obj : list) {
-                JSONObject jsonObject = new JSONObject();
-                jsonObject.put("date", obj.getDate());
-                jsonObject.put("steps", obj.getSteps());
-                returnObj.put(jsonObject);
-            }
-        } catch (Exception e) {
-            e.getMessage();
-        }
-        return returnObj.toString();
+        if (dbManager == null) return "";
+        return dbManager.last5Records();
     }
 
     private String getBeforeDate(String dateFormat) {
@@ -99,33 +89,52 @@ public class StepsCountHelper implements ActivityCompat.OnRequestPermissionsResu
 
 
     public void reqActivityReconPermission(Activity context) {
-        if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACTIVITY_RECOGNITION) != PackageManager.PERMISSION_GRANTED) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+        if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACTIVITY_RECOGNITION) != PackageManager.PERMISSION_GRANTED || ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+            /*String[] permissions = {Manifest.permission.ACTIVITY_RECOGNITION, Manifest.permission.POST_NOTIFICATIONS};
+            int requestCode = 1;*/
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                Log.d("TAG", "reqActivityReconPermission: " + "if");
+                   /* for (String permission : permissions) {
+                        Log.d("TAG", "reqActivityReconPermission: "+permission);
+                        if (ContextCompat.checkSelfPermission(context, permission) != PackageManager.PERMISSION_GRANTED) {
+                            ActivityCompat.requestPermissions(context, new String[]{permission}, requestCode++);
+                        }
+                    }*/
                 ActivityCompat.requestPermissions(context,
-                        new String[]{Manifest.permission.ACTIVITY_RECOGNITION},
+                        new String[]{Manifest.permission.ACTIVITY_RECOGNITION, Manifest.permission.POST_NOTIFICATIONS,Manifest.permission.ACCESS_COARSE_LOCATION,Manifest.permission.ACCESS_FINE_LOCATION},
                         MY_PERMISSIONS_REQUEST_ACTIVITY_RECON);
             } else {
-
-                if (ContextCompat.checkSelfPermission(context,
-                        "com.google.android.gms.permission.ACTIVITY_RECOGNITION") == PackageManager.PERMISSION_DENIED) {
-
-                    ActivityCompat.requestPermissions(context,
-                            new String[]{("com.google.android.gms.permission.ACTIVITY_RECOGNITION")},
-                            MY_PERMISSIONS_REQUEST_ACTIVITY_RECON);
-                }
+                Log.d("TAG", "reqActivityReconPermission: " + "if else");
+                ActivityCompat.requestPermissions(context,
+                        new String[]{Manifest.permission.ACTIVITY_RECOGNITION,Manifest.permission.ACCESS_COARSE_LOCATION,Manifest.permission.ACCESS_FINE_LOCATION},
+                        MY_PERMISSIONS_REQUEST_ACTIVITY_RECON);
             }
-
-        }else {
+            Handler handler = new Handler(Looper.myLooper());
+            handler.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACTIVITY_RECOGNITION) == PackageManager.PERMISSION_GRANTED && ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) {
+                        Log.d("TAG", "permission granted");
+                        startService();
+                    } else {
+                        handler.postDelayed(this, 2000);
+                    }
+                }
+            }, 2000);
+        } else {
             startService();
         }
     }
 
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        if (requestCode == MY_PERMISSIONS_REQUEST_ACTIVITY_RECON) {
-            if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                startService();
-            }
-        }
+
+
+    public String getLocationLive(){
+        return strLocation;
     }
+
+
+    /*@Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        Log.d("TAG", "onRequestPermissionsResult: ");
+    }*/
 }
